@@ -8,7 +8,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -33,13 +32,25 @@ func main() {
 	csvFile, _ := os.Open("people.csv")
 	reader := csv.NewReader(bufio.NewReader(csvFile))
 	db := dbConn()
-	fmt.Println(time.Now())
 	flag := false
+	new := 0
+	count := 0
 	for {
-		fmt.Println(flag)
 		line, error := reader.Read()
 		if len(line) > 0 && flag == true {
-			insForm, err := db.Prepare("INSERT INTO names(firstname, lastname) VALUES(?,?)")
+			selDB, err := db.Query("SELECT * FROM name WHERE firstname=? and lastname=?", line[0], line[1])
+			for selDB.Next() {
+				count++
+			}
+			if err != nil {
+				panic(err.Error())
+			}
+
+		}
+		if len(line) > 0 && flag == true {
+			insForm, err := db.Prepare("INSERT INTO name(firstname, lastname) VALUES(?,?)")
+			//fmt.Println(line[0], line[1])
+			new++
 			if err != nil {
 				panic(err.Error())
 			}
@@ -52,5 +63,7 @@ func main() {
 		}
 		flag = true
 	}
-	fmt.Println(time.Now())
+	defer db.Close()
+	fmt.Println("Match from database ", count)
+	fmt.Println("Inserted ", new)
 }
